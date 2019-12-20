@@ -1,0 +1,5 @@
+#!/bin/bash
+
+sudo cp ansible/roles/nameserver/files/named.conf /etc/
+sudo cp ansible/roles/nameserver/files/master.rhiyo.com /var/named/
+sudo chown root:named /var/named/master.rhiyo.com

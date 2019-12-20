@@ -1,0 +1,10 @@
+- name: bind enable
+  service:
+    name: named
+    enabled: yes
+    state: started
+
+- name: bind update
+  service:
+    name: named
+    state: reloaded

@@ -1,0 +1,26 @@
+- name: install bind
+  package:
+    name: bind
+    state: present
+  notify: bind enable
+
+- name: configure firewall
+  firewalld:
+    service: dns
+    immediate: yes
+    permanent: yes
+    state: enabled
+
+- name: bind config
+  copy:
+    src: named.conf
+    dest: /etc/named.conf
+  notify: bind update
+
+- name: rhiyo zone config
+  copy:
+    src: master.rhiyo.com
+    dest: /var/named/master.rhiyo.com
+    owner: root
+    group: named
+  notify: bind update

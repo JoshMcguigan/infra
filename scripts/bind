@@ -1,0 +1,2 @@
+#!/bin/bash
+sudo /usr/sbin/named -g -4 -u named
