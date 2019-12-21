@@ -18,8 +18,8 @@
   notify: bind update
 
 - name: rhiyo zone config
-  copy:
-    src: master.rhiyo.com
+  template:
+    src: master.rhiyo.com.j2
     dest: /var/named/master.rhiyo.com
     owner: root
     group: named
