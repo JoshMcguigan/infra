@@ -34,10 +34,13 @@ Create new nameservers
 
 This fails if the nameservers are already created.
 """
-for linode_label in ["ns1", "ns2"]:
+for linode_label, linode_region in [
+            ("ns1", "us-west"),  # Fremont
+            ("ns2", "eu-west"),  # Frankfurt
+        ]:
     new_linode, _password = client.linode.instance_create(
         "g6-nanode-1",
-        "us-west",
+        linode_region,
         label=linode_label,
         image="linode/centos8",
         authorized_keys="~/.ssh/id_ed25519.pub")
