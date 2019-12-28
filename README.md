@@ -10,6 +10,6 @@ Contains scripts for creating cloud servers, as well as local testing.
 
 Contains Ansible provisioning scripts.
 
-### monitoring
+### infra-tools
 
-Rust application for infrastructure monitoring
+Additional infra support tooling can be found in the [infra-tools](https://github.com/JoshMcguigan/infra-tools) repository.

@@ -1,8 +1,0 @@
-[package]
-name = "monitoring"
-version = "0.1.0"
-authors = ["Josh Mcguigan"]
-edition = "2018"
-
-[dependencies]
-trust-dns-client = "0.18.0-alpha.3"
