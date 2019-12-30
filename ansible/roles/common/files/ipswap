@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# This must be run as `systemd-run --scope --user ipswap $NEW_IP $NEW_GATEWAY` otherwise
+# the script will exit when the ssh session dies when the network restarts with the new IP.
+
+NEW_IP=$1
+NEW_GATEWAY=$2
+
+# temporarily disable se linux, otherwise it will block nmcli
+setenforce 0
+
+nmcli con mod eth0 ipv4.addresses $NEW_IP/24
+nmcli con mod eth0 ipv4.gateway $NEW_GATEWAY
+
+# re-enable se linux
+setenforce 1
+
+systemctl restart NetworkManager
+nmcli con down eth0
+nmcli con up eth0
+
+arping -I eth0 -s $NEW_IP -w 180 -i 1 $NEW_GATEWAY

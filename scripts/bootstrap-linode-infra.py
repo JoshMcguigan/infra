@@ -29,15 +29,18 @@ Print available linode types, regions, and images
 # for image in images:
 #     print(image)
 
+linodes_to_create = [
+        # ("ns3", "us-west"),
+        ("ns3-next", "us-west"),
+    ]
+
 """
 Create new nameservers
 
 This fails if the nameservers are already created.
 """
-for linode_label, linode_region in [
-            ("ns1", "us-west"),  # Fremont
-            ("ns2", "eu-west"),  # Frankfurt
-        ]:
+linodes_created = []
+for linode_label, linode_region in linodes_to_create:
     new_linode, _password = client.linode.instance_create(
         "g6-nanode-1",
         linode_region,
@@ -45,4 +48,23 @@ for linode_label, linode_region in [
         image="linode/centos8",
         authorized_keys="~/.ssh/id_ed25519.pub")
 
-    print(f"Created {linode_label} with at {new_linode.ips.ipv4.public[0]}")
+    new_ip = new_linode.ips.ipv4.public[0]
+    print(f"Created {linode_label} with at {new_ip}")
+    linodes_created.append((linode_label, new_ip))
+
+print("Update the ansible inventory file with new IPs, wait for the machines to finish starting, then run `ansible-playbook playbook.yml -i inventory`.")
+input("Press Enter to continue...")
+
+for linode_label, new_ip in linodes_created:
+    # TODO do a health check of the new linode
+    print("Perform a health check on the new linode.")
+    input("Press Enter to continue...")
+    print("If there is an existing linode, we want to swap the old IP.")
+    print(f"Run `ssh root@{new_ip}` then on the new linode run `systemd-run --scope --user ipswap $EXISTING_IP $EXISTING_GATEWAY`.")
+    input("Press Enter to continue...")
+    print("Trigger IP swap between new and old linode, then perform health check on the public IP.")
+    input("Press Enter to continue...")
+    print("Delete the old linode.")
+    input("Press Enter to continue...")
+    print("Rename the new linode to remove `-next`.")
+    input("Press Enter to continue...")

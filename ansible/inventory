@@ -1,3 +1,2 @@
 [nameservers]
-ns1 ansible_host=173.255.245.83
-ns2 ansible_host=212.71.246.209
+ns1 ansible_host=45.79.111.31

@@ -5,3 +5,9 @@
     line: "PasswordAuthentication no"
     state: present
   notify: restart ssh
+
+- name: provision ipswap script
+  copy:
+    src: ipswap
+    dest: /usr/local/bin/ipswap
+    mode: u=rwx,g=rx,o=rx
