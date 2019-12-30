@@ -2,6 +2,10 @@
   roles:
     - common
 
-- hosts: nameservers
+- hosts: nameserver
   roles:
     - nameserver
+
+- hosts: proxy
+  roles:
+    - proxy

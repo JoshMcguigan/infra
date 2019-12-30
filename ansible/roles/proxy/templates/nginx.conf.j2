@@ -1,0 +1,14 @@
+load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
+
+events {}
+
+stream {
+    upstream dns_servers {
+        server 173.255.245.83:53;
+    }
+
+    server {
+        listen     53 udp;
+        proxy_pass dns_servers;
+    }
+}
