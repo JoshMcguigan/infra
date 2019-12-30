@@ -4,7 +4,19 @@
     state: present
   notify: nginx enable
 
-// TODO se linux blocks nginx from binding to DNS ports (and possibly proxying?)
+# By default, se linux blocks nginx from:
+#   * listening on port 53
+#   * proxying to another server
+#
+# `selinux_permissive` requires python packages provided by `policycoreutils-python-utils`
+- name: install se linux management packages
+  package:
+    name: policycoreutils-python-utils
+    state: present
+- name: set se linux to permissive mode for nginx
+  selinux_permissive:
+    name: httpd_t
+    permissive: true
 
 - name: configure firewall
   firewalld:
