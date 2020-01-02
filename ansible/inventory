@@ -1,6 +1,7 @@
 [nameserver]
-ns1 ansible_host=173.255.245.83
-ns2 ansible_host=212.71.246.209
+ns1 ansible_host=173.230.148.128
+ns2 ansible_host=212.71.253.38
 
 [proxy]
-lb1 ansible_host=173.230.148.128
+lb1 ansible_host=173.255.245.83
+lb2 ansible_host=212.71.246.209

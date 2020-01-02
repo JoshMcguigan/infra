@@ -18,6 +18,14 @@
     name: httpd_t
     permissive: true
 
+# TODO
+# write scripts to blue-green deploy nameserver updates
+# document the above scripts, as well as how to update proxy servers
+#  - nginx config/version can be updated live
+#  - kernel updates can be done blue-green and update glue records to point to new machine
+#    - this is a much slower blue-green deploy than we have for the nameservers because
+#      we have to wait out the DNS ttl
+
 - name: configure firewall
   firewalld:
     service: dns

@@ -4,7 +4,7 @@ events {}
 
 stream {
     upstream dns_servers {
-        server 173.255.245.83:53;
+        server {{ UPSTREAM_DNS_SERVER }}:53;
     }
 
     server {
