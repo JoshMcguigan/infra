@@ -76,11 +76,6 @@ def bootstrap_infra():
     create_linodes(desired_linodes)
 
 def deploy_updated_nameservers():
-    # TODO documentation
-    #  - nginx config/version can be updated live
-    #  - kernel updates can be done blue-green and update glue records to point to new machine
-    #    - this is a much slower blue-green deploy than we have for the nameservers because
-    #      we have to wait out the DNS ttl
     """
     Deploys updated nameservers in a blue-green style. The existing name servers are left
     running until the new nameservers pass a health check. After a passing health check,
@@ -95,6 +90,10 @@ def deploy_updated_nameservers():
         pass
 
     def health_check_nameservers(created_linodes: Iterable[CreatedLinode]) -> bool:
+        """
+        Health checks new nameservers by connecting to them directly (not through
+        load balancers).
+        """
         pass
 
     def update_ansible_load_balancer_config(created_linodes: Iterable[CreatedLinode]):
@@ -105,6 +104,22 @@ def deploy_updated_nameservers():
         Deploy updated configuration to load balancers to send traffic to new
         nameserver instances.
         """
+        pass
+
+    def health_check() -> bool:
+        """
+        Performs system level health check by performing DNS lookup through
+        load balancers.
+        """
+        pass
+
+    def delete_linodes(linodes: Iterable[str]):
+        """
+        Deletes linodes, given a list of names.
+        """
+        pass
+
+    def rename_linode(old_name:str, new_name: str):
         pass
 
     desired_linodes = [
@@ -125,9 +140,21 @@ def deploy_updated_nameservers():
     update_ansible_load_balancer_config(created_linodes)
     ansible_configure_load_balancers()
 
-    # TODO do a system health check and roll back if needed
-    # TODO delete old nameserver linodes
-    # TODO rename new nameserver linodes
+    if not health_check():
+        print("Health check failed.")
+        print("Traffic is pointing to new linodes.")
+        print("Recommended action: delete new nameserver instances, and revert load balancer configuration.")
+        return
+
+    delete_linodes(["ns1", "ns2"])
+    rename_linode("ns1-next", "ns1")
+    rename_linode("ns2-next", "ns2")
+    # TODO git commit updated ansible config
+    # TODO documentation
+    #  - nginx config/version can be updated live
+    #  - kernel updates can be done blue-green and update glue records to point to new machine
+    #    - this is a much slower blue-green deploy than we have for the nameservers because
+    #      we have to wait out the DNS ttl
 
 def main():
     """
