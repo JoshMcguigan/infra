@@ -57,8 +57,9 @@ def create_linodes(desired_linodes: Iterable[DesiredLinode]) -> Iterable[Created
             image="linode/centos8",
             authorized_keys="~/.ssh/id_ed25519.pub")
 
-        public_ip = new_linode.ips.ipv4.public[0]
-        private_ip = new_linode.ips.ipv4.private[0] 
+        public_ip = new_linode.ips.ipv4.public[0].address
+        private_ip = new_linode.ips.ipv4.private[0].address
+
         created_linodes.append(CreatedLinode(desired_linode, public_ip, private_ip))
 
     return created_linodes
@@ -84,43 +85,51 @@ def deploy_updated_nameservers():
     """
 
     def update_ansible_nameserver_public_ip(created_linodes: Iterable[CreatedLinode]):
-        pass
+        """
+        Update the ansible configuration with the public IP addresses of the newly
+        created linodes, so we can ansible configure them.
+        """
+        input("update ansible inventory file with new public IP for ns1 and ns2..")
 
     def ansible_configure_nameservers(created_linodes: Iterable[CreatedLinode]):
-        pass
+        input("run ansible playbook on newly created nameservers..")
 
     def health_check_nameservers(created_linodes: Iterable[CreatedLinode]) -> bool:
         """
         Health checks new nameservers by connecting to them directly (not through
         load balancers).
         """
-        pass
+        print("attempt DNS resolution through new nameservers public IP")
+        healthy = input("healthy [y/N]")
+        return healthy == "y"
 
     def update_ansible_load_balancer_config(created_linodes: Iterable[CreatedLinode]):
-        pass
+        input("update the host vars for lb1/lb2 with the private IP for ns1-next/ns2-next..")
 
     def ansible_configure_load_balancers():
         """
         Deploy updated configuration to load balancers to send traffic to new
         nameserver instances.
         """
-        pass
+        input("run ansible playbook to update load balancers..")
 
     def health_check() -> bool:
         """
         Performs system level health check by performing DNS lookup through
         load balancers.
         """
-        pass
+        print("attempt DNS resolution through load balancers")
+        healthy = input("healthy [y/N]")
+        return healthy == "y"
 
     def delete_linodes(linodes: Iterable[str]):
         """
         Deletes linodes, given a list of names.
         """
-        pass
+        input("delete ns1/ns2..")
 
     def rename_linode(old_name:str, new_name: str):
-        pass
+        input("rename ns1-next/ns2-next to ns1/ns2..")
 
     desired_linodes = [
             DesiredLinode("ns1-next", "us-west"),
