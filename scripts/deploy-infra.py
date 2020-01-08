@@ -8,7 +8,7 @@ Load linode API key from dotenv file
 import os
 from os.path import join, dirname
 from dotenv import load_dotenv
-dotenv_path = join(dirname(__file__), '.env')
+dotenv_path = join(dirname(__file__), '../.env')
 load_dotenv(dotenv_path)
 LINODE_API_KEY = os.environ.get("LINODE_API_KEY")
 
@@ -168,6 +168,7 @@ def deploy_updated_nameservers():
 def main():
     """
     Expects to be run from the root of the repository.
+    TODO instead cd to repo root at script startup
     """
 
     # The bootstrap infra script only needs to be run once. All other scripts assume
@@ -176,5 +177,5 @@ def main():
 
     deploy_updated_nameservers()
 
-if __name__ == "main":
+if __name__ == "__main__":
     main()
