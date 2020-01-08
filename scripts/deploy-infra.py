@@ -91,7 +91,7 @@ def deploy_updated_nameservers():
         """
         input("update ansible inventory file with new public IP for ns1 and ns2..")
 
-    def ansible_configure_nameservers(created_linodes: Iterable[CreatedLinode]):
+    def ansible_configure_nameservers():
         input("run ansible playbook on newly created nameservers..")
 
     def health_check_nameservers(created_linodes: Iterable[CreatedLinode]) -> bool:
@@ -138,7 +138,7 @@ def deploy_updated_nameservers():
     created_linodes = create_linodes(desired_linodes)
 
     update_ansible_nameserver_public_ip(created_linodes)
-    ansible_configure_nameservers(created_linodes)
+    ansible_configure_nameservers()
 
     if not health_check_nameservers(created_linodes):
         print("Health check failed on newly created linodes.")
