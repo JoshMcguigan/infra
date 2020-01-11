@@ -1,6 +1,8 @@
 #!/bin/python3
 
 from typing import Iterable
+import subprocess
+import fileinput
 
 """
 Load linode API key from dotenv file
@@ -15,7 +17,7 @@ LINODE_API_KEY = os.environ.get("LINODE_API_KEY")
 """
 Instantiate linode API client with key
 """
-from linode_api4 import LinodeClient
+from linode_api4 import LinodeClient  # type: ignore
 client = LinodeClient(LINODE_API_KEY)
 
 """
@@ -43,26 +45,22 @@ class CreatedLinode:
         self.public_ip = public_ip
         self.private_ip = private_ip
 
-def create_linodes(desired_linodes: Iterable[DesiredLinode]) -> Iterable[CreatedLinode]:
+def create_linode(desired_linode: DesiredLinode) -> CreatedLinode:
     """
     Create new linodes. This fails if linodes with these names already exist.
     """
-    created_linodes = []
-    for desired_linode in desired_linodes:
-        new_linode, _password = client.linode.instance_create(
-            "g6-nanode-1",
-            desired_linode.region,
-            private_ip=True,
-            label=desired_linode.name,
-            image="linode/centos8",
-            authorized_keys="~/.ssh/id_ed25519.pub")
+    new_linode, _password = client.linode.instance_create(
+        "g6-nanode-1",
+        desired_linode.region,
+        private_ip=True,
+        label=desired_linode.name,
+        image="linode/centos8",
+        authorized_keys="~/.ssh/id_ed25519.pub")
 
-        public_ip = new_linode.ips.ipv4.public[0].address
-        private_ip = new_linode.ips.ipv4.private[0].address
+    public_ip = new_linode.ips.ipv4.public[0].address
+    private_ip = new_linode.ips.ipv4.private[0].address
 
-        created_linodes.append(CreatedLinode(desired_linode, public_ip, private_ip))
-
-    return created_linodes
+    return CreatedLinode(desired_linode, public_ip, private_ip)
 
 def bootstrap_infra():
     """
@@ -74,7 +72,8 @@ def bootstrap_infra():
             DesiredLinode("lb2", "eu-west"),
             DesiredLinode("ns2", "eu-west"),
         ]
-    create_linodes(desired_linodes)
+    for linode in desired_linodes:
+        create_linode(desired_linode)
 
 def deploy_updated_nameservers():
     """
@@ -84,34 +83,65 @@ def deploy_updated_nameservers():
     nameservers are removed.
     """
 
-    def update_ansible_nameserver_public_ip(created_linodes: Iterable[CreatedLinode]):
+    def update_ansible_nameserver_public_ip(ns1_ip: str, ns2_ip: str):
         """
         Update the ansible configuration with the public IP addresses of the newly
         created linodes, so we can ansible configure them.
         """
-        input("update ansible inventory file with new public IP for ns1 and ns2..")
+        print("updating ansible inventory file with new public IP for ns1 and ns2..")
+        for line in fileinput.input("ansible/inventory", inplace=True):
+            if line.startswith("ns1"):
+                print(f"ns1 ansible_host={ns1_ip}")
+            elif line.startswith("ns2"):
+                print(f"ns2 ansible_host={ns2_ip}")
+            else:
+                # file input adds a newline, so we need to strip the
+                # existing new line
+                print(line.rstrip())
+             
 
     def ansible_configure_nameservers():
-        input("run ansible playbook on newly created nameservers..")
+        print("running ansible playbook on newly created nameservers..")
+        command = "ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbook.yml -i ansible/inventory -l nameserver"
+        subprocess.run(command, shell=True, check=True)
 
-    def health_check_nameservers(created_linodes: Iterable[CreatedLinode]) -> bool:
+    def health_check_nameservers(ns1_public_ip: str, ns2_public_ip: str) -> bool:
         """
         Health checks new nameservers by connecting to them directly (not through
         load balancers).
         """
-        print("attempt DNS resolution through new nameservers public IP")
-        healthy = input("healthy [y/N]")
-        return healthy == "y"
+        print("running DNS health check on new nameservers public IP")
+        try:
+            # TODO this doesn't check the actual returned DNS records
+            command = f"dig ns1.rhiyo.com @{ns1_public_ip}"
+            subprocess.run(command, shell=True, check=True)
+            command = f"dig ns1.rhiyo.com @{ns2_public_ip}"
+            subprocess.run(command, shell=True, check=True)
+        except CalledProcessError:
+            return False
+        return True
 
-    def update_ansible_load_balancer_config(created_linodes: Iterable[CreatedLinode]):
-        input("update the host vars for lb1/lb2 with the private IP for ns1-next/ns2-next..")
+    def update_ansible_load_balancer_config(ns1_private_ip: str, ns2_private_ip: str):
+        print("updating the host vars for lb1/lb2 with the private IP for ns1-next/ns2-next..")
+        for line in fileinput.input("ansible/host_vars/lb1.yml", inplace=True):
+            if line.startswith("UPSTREAM_DNS_SERVER"):
+                print(f"UPSTREAM_DNS_SERVER: \"{ns1_private_ip}\"")
+            else:
+                print(line.rstrip())
+        for line in fileinput.input("ansible/host_vars/lb2.yml", inplace=True):
+            if line.startswith("UPSTREAM_DNS_SERVER"):
+                print(f"UPSTREAM_DNS_SERVER: \"{ns2_private_ip}\"")
+            else:
+                print(line.rstrip())
 
     def ansible_configure_load_balancers():
         """
         Deploy updated configuration to load balancers to send traffic to new
         nameserver instances.
         """
-        input("run ansible playbook to update load balancers..")
+        print("running ansible playbook to update load balancers..")
+        command = "ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbook.yml -i ansible/inventory -l proxy"
+        subprocess.run(command, shell=True, check=True)
 
     def health_check() -> bool:
         """
@@ -131,22 +161,21 @@ def deploy_updated_nameservers():
     def rename_linode(old_name:str, new_name: str):
         input("rename ns1-next/ns2-next to ns1/ns2..")
 
-    desired_linodes = [
-            DesiredLinode("ns1-next", "us-west"),
-            DesiredLinode("ns2-next", "eu-west"),
-        ]
-    created_linodes = create_linodes(desired_linodes)
+    ns1 = create_linode(DesiredLinode("ns1-next", "us-west"))
+    ns2 = create_linode(DesiredLinode("ns2-next", "eu-west"))
 
-    update_ansible_nameserver_public_ip(created_linodes)
+    input("press enter when ns1-next and ns2-next are booted..")
+
+    update_ansible_nameserver_public_ip(ns1.public_ip, ns2.public_ip)
     ansible_configure_nameservers()
 
-    if not health_check_nameservers(created_linodes):
+    if not health_check_nameservers(ns1.public_ip, ns2.public_ip):
         print("Health check failed on newly created linodes.")
         print("Traffic is still pointing to existing nameservers.")
         print("Recommended action: delete new nameserver instances.")
         return
 
-    update_ansible_load_balancer_config(created_linodes)
+    update_ansible_load_balancer_config(ns1.private_ip, ns2.private_ip)
     ansible_configure_load_balancers()
 
     if not health_check():
