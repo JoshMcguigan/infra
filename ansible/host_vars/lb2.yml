@@ -1,0 +1,2 @@
+# upstream DNS server is the internal IP for NS2
+UPSTREAM_DNS_SERVER: "192.168.150.59"

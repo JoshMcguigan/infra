@@ -9,5 +9,5 @@ $TTL	1h
        IN  NS     ns1.rhiyo.com.
        IN  NS     ns2.rhiyo.com.
 
-ns1    IN  A      {{ hostvars.ns1.ansible_host }}
-ns2    IN  A      {{ hostvars.ns2.ansible_host }} 
+ns1    IN  A      {{ hostvars.lb1.ansible_host }}
+ns2    IN  A      {{ hostvars.lb2.ansible_host }}
