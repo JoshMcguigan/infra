@@ -184,9 +184,17 @@ def deploy_updated_nameservers():
         print("Recommended action: delete new nameserver instances, and revert load balancer configuration.")
         return
 
-    delete_linodes(["ns1", "ns2"])
-    rename_linode("ns1-next", "ns1")
-    rename_linode("ns2-next", "ns2")
+    print("load balancers are now pointing to ns1-next and ns2-next")
+    print("deleting ns1/ns2")
+    for linode in client.linode.instances():
+        if linode.label in ["ns1", "ns2"]:
+            linode.delete()
+
+    print("renaming ns1-next and ns2-next to ns1/ns2")
+    for linode in client.linode.instances():
+        if linode.label.endswith("-next"):
+            linode.label = linode.label.rstrip("-next")
+            linode.save()
     # TODO git commit updated ansible config
     # TODO documentation
     #  - nginx config/version can be updated live
