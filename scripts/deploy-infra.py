@@ -3,15 +3,19 @@
 from typing import Iterable
 import subprocess
 import fileinput
+import os
+from os.path import join, dirname
+
+"""
+Set current working directory to repository root.
+"""
+os.chdir(join(dirname(__file__), '..'))
 
 """
 Load linode API key from dotenv file
 """
-import os
-from os.path import join, dirname
 from dotenv import load_dotenv
-dotenv_path = join(dirname(__file__), '../.env')
-load_dotenv(dotenv_path)
+load_dotenv('.env')
 LINODE_API_KEY = os.environ.get("LINODE_API_KEY")
 
 """
@@ -49,6 +53,7 @@ def create_linode(desired_linode: DesiredLinode) -> CreatedLinode:
     """
     Create new linodes. This fails if linodes with these names already exist.
     """
+    print(f"Creating {desired_linode.name}..")
     new_linode, _password = client.linode.instance_create(
         "g6-nanode-1",
         desired_linode.region,
@@ -121,14 +126,27 @@ def deploy_updated_nameservers():
                 # SSH down, try again
                 # Due to the long SSH connection timeout value, adding
                 # a time delay here is not necessary.
+                pass
 
         raise Exception(f"Failed to SSH to {ip}")
-
 
     def ansible_configure_nameservers():
         print("running ansible playbook on newly created nameservers..")
         command = "ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbook.yml -i ansible/inventory -l nameserver"
         subprocess.run(command, shell=True, check=True)
+
+    def dns_health_check(nameserver_ip: str) -> bool:
+        try:
+            # TODO this doesn't check the actual returned DNS records
+            # This should eventually become a feature of the
+            # infra-tools/monitoring application, to ensure
+            # the production checks are the same as the deploy
+            # checks.
+            command = f"dig ns1.rhiyo.com @{nameserver_ip}"
+            subprocess.run(command, shell=True, check=True)
+        except CalledProcessError:
+            return False
+        return True
 
     def health_check_nameservers(ns1_public_ip: str, ns2_public_ip: str) -> bool:
         """
@@ -136,15 +154,7 @@ def deploy_updated_nameservers():
         load balancers).
         """
         print("running DNS health check on new nameservers public IP")
-        try:
-            # TODO this doesn't check the actual returned DNS records
-            command = f"dig ns1.rhiyo.com @{ns1_public_ip}"
-            subprocess.run(command, shell=True, check=True)
-            command = f"dig ns1.rhiyo.com @{ns2_public_ip}"
-            subprocess.run(command, shell=True, check=True)
-        except CalledProcessError:
-            return False
-        return True
+        return dns_health_check(ns1_public_ip) and dns_health_check(ns2_public_ip)
 
     def update_ansible_load_balancer_config(ns1_private_ip: str, ns2_private_ip: str):
         print("updating the host vars for lb1/lb2 with the private IP for ns1-next/ns2-next..")
@@ -173,18 +183,11 @@ def deploy_updated_nameservers():
         Performs system level health check by performing DNS lookup through
         load balancers.
         """
-        print("attempt DNS resolution through load balancers")
-        healthy = input("healthy [y/N]")
-        return healthy == "y"
-
-    def delete_linodes(linodes: Iterable[str]):
-        """
-        Deletes linodes, given a list of names.
-        """
-        input("delete ns1/ns2..")
-
-    def rename_linode(old_name:str, new_name: str):
-        input("rename ns1-next/ns2-next to ns1/ns2..")
+        print("running health check through load balancer")
+        # TODO this information should come from the ansible inventory file
+        LB1_PUBLIC_IP = "173.255.245.83"
+        LB2_PUBLIC_IP = "212.71.246.209"
+        return dns_health_check(LB1_PUBLIC_IP) and dns_health_check(LB2_PUBLIC_IP)
 
     ns1 = create_linode(DesiredLinode("ns1-next", "us-west"))
     ns2 = create_linode(DesiredLinode("ns2-next", "eu-west"))
@@ -221,19 +224,12 @@ def deploy_updated_nameservers():
         if linode.label.endswith("-next"):
             linode.label = linode.label.rstrip("-next")
             linode.save()
-    # TODO git commit updated ansible config
-    # TODO documentation
-    #  - nginx config/version can be updated live
-    #  - kernel updates can be done blue-green and update glue records to point to new machine
-    #    - this is a much slower blue-green deploy than we have for the nameservers because
-    #      we have to wait out the DNS ttl
+
+    print("Deploy complete!")
+    print("Suggested action:")
+    print(" - git commit the updated configuration")
 
 def main():
-    """
-    Expects to be run from the root of the repository.
-    TODO instead cd to repo root at script startup
-    """
-
     # The bootstrap infra script only needs to be run once. All other scripts assume
     # these machines already exist.
     # bootstrap_infra()
