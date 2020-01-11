@@ -2,12 +2,6 @@
 
 Check out [this blog post](https://www.joshmcguigan.com/blog/run-your-own-dns-servers/) for the backstory on why I've chosen to run my own authoritative DNS servers.
 
-TODO documentation
- - nginx config/version can be updated live
- - kernel updates can be done blue-green and update glue records to point to new machine
-   - this is a much slower blue-green deploy than we have for the nameservers because
-     we have to wait out the DNS ttl
-
 ### scripts
 
 Contains scripts for creating cloud servers, as well as local testing.
