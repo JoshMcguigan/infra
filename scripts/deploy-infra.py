@@ -99,6 +99,31 @@ def deploy_updated_nameservers():
                 # existing new line
                 print(line.rstrip())
              
+    def wait_for_ssh(ip: str):
+        """
+        Blocks until SSH is up for this IP
+        """
+        for i in range(5):
+            try:
+                # Test if this machine is available via SSH by connecting
+                # and then immediately `exit`ing. Turn off strict host
+                # key checking because linode could be re-using an IP
+                # my machine has previously connected to. Set batch
+                # mode to ensure a password prompt doesn't come up if
+                # key based auth fails (these machines should be accesible
+                # by key).
+                print(f"Attempting to connect to {ip}..")
+                command = f"ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes root@{ip} exit"
+                subprocess.run(command, shell=True, check=True)
+                print("Connected")
+                return
+            except CalledProcessError:
+                # SSH down, try again
+                # Due to the long SSH connection timeout value, adding
+                # a time delay here is not necessary.
+
+        raise Exception(f"Failed to SSH to {ip}")
+
 
     def ansible_configure_nameservers():
         print("running ansible playbook on newly created nameservers..")
@@ -164,7 +189,8 @@ def deploy_updated_nameservers():
     ns1 = create_linode(DesiredLinode("ns1-next", "us-west"))
     ns2 = create_linode(DesiredLinode("ns2-next", "eu-west"))
 
-    input("press enter when ns1-next and ns2-next are booted..")
+    wait_for_ssh(ns1.public_ip)
+    wait_for_ssh(ns2.public_ip)
 
     update_ansible_nameserver_public_ip(ns1.public_ip, ns2.public_ip)
     ansible_configure_nameservers()
