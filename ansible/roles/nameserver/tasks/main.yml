@@ -24,3 +24,11 @@
     owner: root
     group: named
   notify: bind update
+
+- name: joshmcguigan zone config
+  copy:
+    src: master.joshmcguigan.com
+    dest: /var/named/master.joshmcguigan.com
+    owner: root
+    group: named
+  notify: bind update
